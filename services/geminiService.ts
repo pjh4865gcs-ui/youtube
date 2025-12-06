@@ -1,7 +1,8 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { ScriptAnalysis } from "../types";
+import { ScriptAnalysis, ThumbnailData } from "../types";
 
 const modelName = "gemini-2.5-flash";
+const imageModelName = "gemini-2.5-flash"; // 이미지 생성 모델
 
 let currentApiKey: string | null = null;
 
@@ -111,6 +112,49 @@ export const generateFullScript = async (
     return response.text || "대본 생성에 실패했습니다.";
   } catch (error) {
     console.error("Script generation failed:", error);
+    throw error;
+  }
+};
+
+export const generateThumbnail = async (topic: string, tone: string): Promise<ThumbnailData> => {
+  const prompt = `
+    유튜브 비디오 제목 "${topic}"에 대한 매력적인 썸네일을 디자인하세요.
+    
+    톤: ${tone}
+    
+    다음 정보를 생성하세요:
+    1. 썸네일에 들어갈 메인 텍스트 (짧고 임팩트 있게, 10자 이내)
+    2. 서브 텍스트 (선택사항, 있다면 5-8자)
+    3. 썸네일 배경 이미지 생성을 위한 상세한 프롬프트 (영어로, 유튜브 썸네일 스타일)
+    
+    모든 응답은 한국어로 작성하되, imagePrompt만 영어로 작성하세요.
+  `;
+
+  try {
+    const ai = getAI();
+    const response = await ai.models.generateContent({
+      model: modelName,
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            title: { type: Type.STRING, description: "썸네일 메인 텍스트 (한국어)" },
+            subtitle: { type: Type.STRING, description: "썸네일 서브 텍스트 (한국어, 선택사항)" },
+            imagePrompt: { type: Type.STRING, description: "이미지 생성 프롬프트 (영어)" }
+          },
+          required: ["title", "imagePrompt"]
+        }
+      }
+    });
+
+    const text = response.text;
+    if (!text) throw new Error("No response from Gemini");
+    
+    return JSON.parse(text) as ThumbnailData;
+  } catch (error) {
+    console.error("Thumbnail generation failed:", error);
     throw error;
   }
 };

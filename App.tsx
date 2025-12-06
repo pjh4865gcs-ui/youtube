@@ -5,6 +5,7 @@ import { AppStep, ScriptAnalysis, TopicSuggestion, ScriptOptions } from './types
 import { StepIndicator } from './components/StepIndicator';
 import { LoadingSpinner } from './components/LoadingSpinner';
 import { ApiKeyManager } from './components/ApiKeyManager';
+import { ThumbnailGenerator } from './components/ThumbnailGenerator';
 
 const App: React.FC = () => {
   const [step, setStep] = useState<AppStep>(AppStep.INPUT);
@@ -329,15 +330,20 @@ const App: React.FC = () => {
   );
 
   const renderResult = () => (
-    <div className="w-full max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="w-full max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
       {/* Back Button */}
       <button
         onClick={handleBackToSelection}
-        className="flex items-center space-x-2 text-slate-400 hover:text-white transition-colors mb-6"
+        className="flex items-center space-x-2 text-slate-400 hover:text-white transition-colors"
       >
         <ArrowRight className="rotate-180" size={20} />
         <span>주제 선택으로 돌아가기</span>
       </button>
+
+      {/* Thumbnail Generator */}
+      {analysis && selectedTopic && (
+        <ThumbnailGenerator topic={selectedTopic.title} tone={analysis.tone} />
+      )}
 
       <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl">
         {/* Header */}

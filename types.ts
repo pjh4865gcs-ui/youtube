@@ -18,6 +18,13 @@ export interface ScriptOptions {
   customIdeas?: string;
 }
 
+export interface ThumbnailData {
+  title: string;
+  subtitle?: string;
+  imagePrompt: string;
+  imageUrl?: string;
+}
+
 export enum AppStep {
   INPUT = 'INPUT',
   ANALYZING = 'ANALYZING',
