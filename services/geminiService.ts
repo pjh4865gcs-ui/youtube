@@ -158,3 +158,43 @@ export const generateThumbnail = async (topic: string, tone: string): Promise<Th
     throw error;
   }
 };
+
+export const generateScriptStructure = async (topic: string, tone: string, audience: string): Promise<string> => {
+  const prompt = `
+    유튜브 비디오 제목 "${topic}"에 대한 상세한 대본 구조를 생성하세요.
+    
+    타겟 시청자: ${audience}
+    톤: ${tone}
+    
+    30초 룰을 적용하여 다음 구조로 작성하세요:
+    
+    1. HOOK (0-30초): 시청자를 즉시 사로잡을 3가지 요소
+       - 각 요소는 구체적이고 실행 가능해야 함
+    
+    2. INTRO (30초-1분): 주제 소개 및 구성 안내
+       - 자기소개, 주제 명확화, 타임스탬프 미리보기
+    
+    3. BODY: 핵심 내용 (3-5개 포인트)
+       - 각 포인트마다 2-3개의 세부 설명
+       - 예시, 사례, 시각 자료 활용 방안 포함
+    
+    4. OUTRO & CTA: 마무리
+       - 요약, 질문, 행동 유도, 다음 영상 예고
+    
+    계층 구조로 명확하게 정리하여 출력하세요. 모든 내용은 한국어로 작성하세요.
+  `;
+
+  try {
+    const ai = getAI();
+    const response = await ai.models.generateContent({
+      model: modelName,
+      contents: prompt,
+    });
+
+    return response.text || "구조 생성에 실패했습니다.";
+  } catch (error) {
+    console.error("Structure generation failed:", error);
+    throw error;
+  }
+};
+

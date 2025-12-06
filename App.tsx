@@ -6,6 +6,7 @@ import { StepIndicator } from './components/StepIndicator';
 import { LoadingSpinner } from './components/LoadingSpinner';
 import { ApiKeyManager } from './components/ApiKeyManager';
 import { ThumbnailGenerator } from './components/ThumbnailGenerator';
+import { ScriptFlowMap } from './components/ScriptFlowMap';
 
 const App: React.FC = () => {
   const [step, setStep] = useState<AppStep>(AppStep.INPUT);
@@ -266,6 +267,9 @@ const App: React.FC = () => {
             <ArrowRight className="rotate-180" size={20} />
             <span>입력으로 돌아가기</span>
           </button>
+
+          {/* Script Flow Map */}
+          <ScriptFlowMap />
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Analysis Panel */}
