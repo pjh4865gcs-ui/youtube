@@ -7,7 +7,20 @@ import { LoadingSpinner } from './components/LoadingSpinner';
 import { ApiKeyManager } from './components/ApiKeyManager';
 import { ThumbnailGenerator } from './components/ThumbnailGenerator';
 import { ScriptFlowMap } from './components/ScriptFlowMap';
-import { downloadAsWord, downloadAsPDF } from './utils/documentExport';
+
+// 동적 import로 변경
+let downloadAsWord: any = null;
+let downloadAsPDF: any = null;
+
+// 브라우저 환경에서만 로드
+if (typeof window !== 'undefined') {
+  import('./utils/documentExport').then(module => {
+    downloadAsWord = module.downloadAsWord;
+    downloadAsPDF = module.downloadAsPDF;
+  }).catch(() => {
+    console.log('Document export features not available');
+  });
+}
 
 const App: React.FC = () => {
   const [step, setStep] = useState<AppStep>(AppStep.INPUT);
@@ -457,7 +470,13 @@ const App: React.FC = () => {
               <span>{isCopied ? '복사됨!' : '대본 복사'}</span>
             </button>
             <button
-              onClick={() => downloadAsWord(selectedTopic?.title || '대본', generatedScript)}
+              onClick={() => {
+                if (downloadAsWord) {
+                  downloadAsWord(selectedTopic?.title || '대본', generatedScript);
+                } else {
+                  alert('Word 다운로드 기능을 로딩 중입니다. 잠시 후 다시 시도해주세요.');
+                }
+              }}
               className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-colors border border-blue-700"
               title="Word 문서로 다운로드"
             >
@@ -465,7 +484,13 @@ const App: React.FC = () => {
               <span>Word</span>
             </button>
             <button
-              onClick={() => downloadAsPDF(selectedTopic?.title || '대본', generatedScript)}
+              onClick={() => {
+                if (downloadAsPDF) {
+                  downloadAsPDF(selectedTopic?.title || '대본', generatedScript);
+                } else {
+                  alert('PDF 다운로드 기능을 로딩 중입니다. 잠시 후 다시 시도해주세요.');
+                }
+              }}
               className="flex items-center space-x-2 px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg font-medium transition-colors border border-red-700"
               title="PDF로 다운로드"
             >
