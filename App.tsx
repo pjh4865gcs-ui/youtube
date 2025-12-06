@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Sparkles, PenTool, ArrowRight, RotateCcw, Copy, CheckCircle2, Youtube, Wand2 } from 'lucide-react';
 import { analyzeScriptAndGetTopics, generateFullScript, setApiKey } from './services/geminiService';
-import { AppStep, ScriptAnalysis, TopicSuggestion } from './types';
+import { AppStep, ScriptAnalysis, TopicSuggestion, ScriptOptions } from './types';
 import { StepIndicator } from './components/StepIndicator';
 import { LoadingSpinner } from './components/LoadingSpinner';
 import { ApiKeyManager } from './components/ApiKeyManager';
@@ -9,6 +9,12 @@ import { ApiKeyManager } from './components/ApiKeyManager';
 const App: React.FC = () => {
   const [step, setStep] = useState<AppStep>(AppStep.INPUT);
   const [inputScript, setInputScript] = useState('');
+  const [scriptOptions, setScriptOptions] = useState<ScriptOptions>({
+    category: '',
+    duration: '8분',
+    style: 'dialogue',
+    customIdeas: ''
+  });
   const [analysis, setAnalysis] = useState<ScriptAnalysis | null>(null);
   const [selectedTopic, setSelectedTopic] = useState<TopicSuggestion | null>(null);
   const [generatedScript, setGeneratedScript] = useState<string>('');
@@ -46,7 +52,13 @@ const App: React.FC = () => {
     setSelectedTopic(topic);
     setStep(AppStep.GENERATING);
     try {
-      const script = await generateFullScript(topic.title, analysis.tone, analysis.targetAudience);
+      const script = await generateFullScript(
+        topic.title, 
+        analysis.tone, 
+        analysis.targetAudience,
+        scriptOptions.duration || '8분',
+        scriptOptions.style || 'dialogue'
+      );
       setGeneratedScript(script);
       setStep(AppStep.RESULT);
     } catch (error) {
@@ -64,6 +76,12 @@ const App: React.FC = () => {
   const handleReset = () => {
     setStep(AppStep.INPUT);
     setInputScript('');
+    setScriptOptions({
+      category: '',
+      duration: '8분',
+      style: 'dialogue',
+      customIdeas: ''
+    });
     setAnalysis(null);
     setSelectedTopic(null);
     setGeneratedScript('');
@@ -82,7 +100,131 @@ const App: React.FC = () => {
 
   // Render Helpers
   const renderInput = () => (
-    <div className="w-full max-w-3xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="w-full max-w-4xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      {/* YouTube URL Input */}
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl">
+        <label htmlFor="youtube-url" className="block text-lg font-semibold text-slate-200 mb-4">
+          유튜브 URL 입력 (선택사항)
+        </label>
+        <input
+          id="youtube-url"
+          type="text"
+          className="w-full bg-slate-950 text-slate-100 border-2 border-slate-800 rounded-xl p-4 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-lg placeholder:text-slate-600 outline-none"
+          placeholder="https://www.youtube.com/watch?v=..."
+          value={scriptOptions.youtubeUrl || ''}
+          onChange={(e) => setScriptOptions({...scriptOptions, youtubeUrl: e.target.value})}
+        />
+      </div>
+
+      {/* Category Selection */}
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl">
+        <label className="block text-lg font-semibold text-slate-200 mb-4">
+          카테고리 선택 <span className="text-slate-500 text-sm font-normal">(드래그하여 손쉽 변경)</span>
+        </label>
+        <div className="flex flex-wrap gap-2">
+          {['쓸 재널', '건강', '미스테리', '야담', '49금', '국룡', '북한 이슈', '정보 전달', '쇼핑 리뷰', 'IT/테크', '요리/국방', '뷰티', '게임', '먹방', '브이로그'].map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setScriptOptions({...scriptOptions, category: cat})}
+              className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                scriptOptions.category === cat
+                  ? 'bg-red-600 text-white'
+                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Duration and Style */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Duration */}
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl">
+          <label className="block text-lg font-semibold text-slate-200 mb-4">
+            예상 영상 길이
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {['8분', '30분', '1시간', '사용자 입력'].map((dur) => (
+              <button
+                key={dur}
+                onClick={() => setScriptOptions({...scriptOptions, duration: dur})}
+                className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                  scriptOptions.duration === dur
+                    ? 'bg-red-600 text-white'
+                    : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                }`}
+              >
+                {dur}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Style */}
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl">
+          <label className="block text-lg font-semibold text-slate-200 mb-4">
+            대본 스타일
+          </label>
+          <div className="space-y-3">
+            <button
+              onClick={() => setScriptOptions({...scriptOptions, style: 'dialogue'})}
+              className={`w-full p-4 rounded-xl text-left transition-all ${
+                scriptOptions.style === 'dialogue'
+                  ? 'bg-red-600 text-white border-2 border-red-500'
+                  : 'bg-slate-800 text-slate-300 border-2 border-slate-700 hover:bg-slate-700'
+              }`}
+            >
+              <div className="font-bold mb-1">🗣️ 대화 버전</div>
+              <div className="text-sm opacity-80">등장인물 간 대화 형식</div>
+            </button>
+            <button
+              onClick={() => setScriptOptions({...scriptOptions, style: 'narration'})}
+              className={`w-full p-4 rounded-xl text-left transition-all ${
+                scriptOptions.style === 'narration'
+                  ? 'bg-red-600 text-white border-2 border-red-500'
+                  : 'bg-slate-800 text-slate-300 border-2 border-slate-700 hover:bg-slate-700'
+              }`}
+            >
+              <div className="font-bold mb-1">📖 나레이션 버전</div>
+              <div className="text-sm opacity-80">단독 나레이터 형식</div>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* New Ideas Input */}
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl">
+        <label className="block text-lg font-semibold text-slate-200 mb-4">
+          새로운 아이디어 제안
+        </label>
+        <div className="mb-4">
+          <input
+            type="text"
+            className="w-full bg-slate-950 text-slate-100 border-2 border-slate-800 rounded-xl p-4 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-lg placeholder:text-slate-600 outline-none"
+            placeholder="원하는 키워드 입력 (선택사항) - 예: 다이어트, 여행, 게임"
+            value={scriptOptions.customIdeas}
+            onChange={(e) => setScriptOptions({...scriptOptions, customIdeas: e.target.value})}
+          />
+          <p className="text-slate-500 text-sm mt-2 flex items-start">
+            <span className="mr-2">💡</span>
+            특정 키워드를 입력하고 '적용' 버튼을 누르면 해당 키워드를 포함한 아이디어가 생성됩니다.
+          </p>
+        </div>
+      </div>
+
+      {/* Thumbnail Title Input (Optional) */}
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl">
+        <label className="block text-lg font-semibold text-slate-200 mb-4">
+          썸네일 제목 직접 입력 또는 아이디어 선택
+        </label>
+        <p className="text-slate-400 text-sm mb-4">
+          영상 분석을 불러올게 있습니다.
+        </p>
+      </div>
+
+      {/* Main Script Input */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl">
         <label htmlFor="script-input" className="block text-lg font-semibold text-slate-200 mb-4">
           대본 초안이나 영상 아이디어를 입력하세요

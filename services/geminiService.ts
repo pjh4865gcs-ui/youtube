@@ -73,12 +73,24 @@ export const analyzeScriptAndGetTopics = async (inputScript: string): Promise<Sc
   }
 };
 
-export const generateFullScript = async (topic: string, tone: string, audience: string): Promise<string> => {
+export const generateFullScript = async (
+  topic: string, 
+  tone: string, 
+  audience: string,
+  duration: string = '8분',
+  style: 'dialogue' | 'narration' = 'dialogue'
+): Promise<string> => {
+  const styleInstruction = style === 'dialogue' 
+    ? '대화 형식으로 작성하세요. 등장인물 간의 자연스러운 대화로 구성하세요.'
+    : '나레이션 형식으로 작성하세요. 단독 나레이터가 진행하는 형식으로 구성하세요.';
+
   const prompt = `
     비디오 제목: "${topic}"에 대한 시청 지속 시간이 높은 완벽한 유튜브 대본을 작성하세요.
     
     타겟 시청자: ${audience}
     원하는 톤: ${tone}
+    예상 영상 길이: ${duration}
+    대본 스타일: ${styleInstruction}
     
     구조 요구사항:
     1. 후킹 (HOOK) (0-60초): 즉시 관심을 사로잡으세요.

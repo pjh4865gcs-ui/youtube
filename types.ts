@@ -10,6 +10,14 @@ export interface TopicSuggestion {
   reasoning: string;
 }
 
+export interface ScriptOptions {
+  youtubeUrl?: string;
+  category?: string;
+  duration?: string;
+  style?: 'dialogue' | 'narration';
+  customIdeas?: string;
+}
+
 export enum AppStep {
   INPUT = 'INPUT',
   ANALYZING = 'ANALYZING',
