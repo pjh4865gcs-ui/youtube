@@ -22,6 +22,7 @@ const App: React.FC = () => {
   const [generatedScript, setGeneratedScript] = useState<string>('');
   const [isCopied, setIsCopied] = useState(false);
   const [hasApiKey, setHasApiKey] = useState(false);
+  const [scriptStructure, setScriptStructure] = useState<any>(null);
 
   // API Key Handler
   const handleApiKeySet = (apiKey: string) => {
@@ -98,6 +99,28 @@ const App: React.FC = () => {
     setStep(AppStep.SELECTION);
     setSelectedTopic(null);
     setGeneratedScript('');
+  };
+
+  const handleStructureChange = (structure: any) => {
+    setScriptStructure(structure);
+  };
+
+  const generateScriptFromStructure = () => {
+    if (!scriptStructure) return '';
+    
+    const nodeToText = (node: any, level: number = 0): string => {
+      let text = '';
+      // root 노드는 건너뛰기
+      if (node.id !== 'root') {
+        text = `${'#'.repeat(Math.min(level, 3))} ${node.title}\n\n`;
+      }
+      if (node.children && node.children.length > 0) {
+        text += node.children.map((child: any) => nodeToText(child, level + 1)).join('');
+      }
+      return text;
+    };
+    
+    return nodeToText(scriptStructure);
   };
 
   // Render Helpers
@@ -269,7 +292,33 @@ const App: React.FC = () => {
           </button>
 
           {/* Script Flow Map */}
-          <ScriptFlowMap />
+          <ScriptFlowMap onStructureChange={handleStructureChange} />
+
+          {/* Generate Script from Structure Button */}
+          {scriptStructure && (
+            <div className="bg-gradient-to-r from-indigo-900/50 to-purple-900/50 border-2 border-indigo-500/50 rounded-2xl p-6 shadow-2xl">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-bold text-white mb-2">📝 구조 기반 대본 생성</h3>
+                  <p className="text-slate-300 text-sm">
+                    위에서 작성한 논리 흐름도를 하나의 완성된 대본으로 통합합니다.
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    const structuredScript = generateScriptFromStructure();
+                    setGeneratedScript(structuredScript);
+                    setSelectedTopic({ title: '구조 기반 대본', reasoning: '논리 흐름도에서 생성됨' });
+                    setStep(AppStep.RESULT);
+                  }}
+                  className="flex items-center space-x-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white px-6 py-3 rounded-xl font-bold transition-all transform hover:scale-105 shadow-lg"
+                >
+                  <Sparkles size={20} />
+                  <span>대본 생성하기</span>
+                </button>
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Analysis Panel */}

@@ -251,7 +251,7 @@ export const ScriptFlowMap: React.FC<ScriptFlowMapProps> = ({ onStructureChange 
                 >
                   <Edit2 size={16} />
                 </button>
-                {node.id !== 'root' && !node.id.startsWith('hook') && !node.id.startsWith('intro') && !node.id.startsWith('body') && !node.id.startsWith('outro') && (
+                {node.id !== 'root' && (
                   <button
                     onClick={() => handleDelete(node.id)}
                     className="p-1 hover:bg-red-600 rounded transition-colors opacity-0 group-hover:opacity-100"
