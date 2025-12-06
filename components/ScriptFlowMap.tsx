@@ -30,9 +30,9 @@ export const ScriptFlowMap: React.FC<ScriptFlowMapProps> = ({ onStructureChange 
         type: 'hook',
         isGuide: true,
         children: [
-          { id: 'hook-1', title: '충격적인 사실이나 질문', children: [], isExpanded: false, type: 'point' },
-          { id: 'hook-2', title: '시청자의 문제점 제시', children: [], isExpanded: false, type: 'point' },
-          { id: 'hook-3', title: '영상의 가치 약속', children: [], isExpanded: false, type: 'point' }
+          { id: 'hook-1', title: '충격적인 사실이나 질문', children: [], isExpanded: false, type: 'point', isGuide: true },
+          { id: 'hook-2', title: '시청자의 문제점 제시', children: [], isExpanded: false, type: 'point', isGuide: true },
+          { id: 'hook-3', title: '영상의 가치 약속', children: [], isExpanded: false, type: 'point', isGuide: true }
         ]
       },
       {
@@ -43,9 +43,9 @@ export const ScriptFlowMap: React.FC<ScriptFlowMapProps> = ({ onStructureChange 
         type: 'intro',
         isGuide: true,
         children: [
-          { id: 'intro-1', title: '자기소개 (간단히)', children: [], isExpanded: false, type: 'point' },
-          { id: 'intro-2', title: '영상 주제 명확히 밝히기', children: [], isExpanded: false, type: 'point' },
-          { id: 'intro-3', title: '구성 미리보기 (타임스탬프)', children: [], isExpanded: false, type: 'point' }
+          { id: 'intro-1', title: '자기소개 (간단히)', children: [], isExpanded: false, type: 'point', isGuide: true },
+          { id: 'intro-2', title: '영상 주제 명확히 밝히기', children: [], isExpanded: false, type: 'point', isGuide: true },
+          { id: 'intro-3', title: '구성 미리보기 (타임스탬프)', children: [], isExpanded: false, type: 'point', isGuide: true }
         ]
       },
       {
@@ -62,9 +62,9 @@ export const ScriptFlowMap: React.FC<ScriptFlowMapProps> = ({ onStructureChange 
             isExpanded: true,
             type: 'point',
             children: [
-              { id: 'detail-1-1', title: '구체적 설명', children: [], isExpanded: false, type: 'detail' },
-              { id: 'detail-1-2', title: '예시 또는 사례', children: [], isExpanded: false, type: 'detail' },
-              { id: 'detail-1-3', title: '시각 자료 활용', children: [], isExpanded: false, type: 'detail' }
+              { id: 'detail-1-1', title: '구체적 설명', children: [], isExpanded: false, type: 'detail', isGuide: true },
+              { id: 'detail-1-2', title: '예시 또는 사례', children: [], isExpanded: false, type: 'detail', isGuide: true },
+              { id: 'detail-1-3', title: '시각 자료 활용', children: [], isExpanded: false, type: 'detail', isGuide: true }
             ]
           },
           {
@@ -73,8 +73,8 @@ export const ScriptFlowMap: React.FC<ScriptFlowMapProps> = ({ onStructureChange 
             isExpanded: true,
             type: 'point',
             children: [
-              { id: 'detail-2-1', title: '구체적 설명', children: [], isExpanded: false, type: 'detail' },
-              { id: 'detail-2-2', title: '예시 또는 사례', children: [], isExpanded: false, type: 'detail' }
+              { id: 'detail-2-1', title: '구체적 설명', children: [], isExpanded: false, type: 'detail', isGuide: true },
+              { id: 'detail-2-2', title: '예시 또는 사례', children: [], isExpanded: false, type: 'detail', isGuide: true }
             ]
           },
           {
@@ -83,8 +83,8 @@ export const ScriptFlowMap: React.FC<ScriptFlowMapProps> = ({ onStructureChange 
             isExpanded: true,
             type: 'point',
             children: [
-              { id: 'detail-3-1', title: '구체적 설명', children: [], isExpanded: false, type: 'detail' },
-              { id: 'detail-3-2', title: '예시 또는 사례', children: [], isExpanded: false, type: 'detail' }
+              { id: 'detail-3-1', title: '구체적 설명', children: [], isExpanded: false, type: 'detail', isGuide: true },
+              { id: 'detail-3-2', title: '예시 또는 사례', children: [], isExpanded: false, type: 'detail', isGuide: true }
             ]
           }
         ]
@@ -97,10 +97,10 @@ export const ScriptFlowMap: React.FC<ScriptFlowMapProps> = ({ onStructureChange 
         type: 'outro',
         isGuide: true,
         children: [
-          { id: 'outro-1', title: '핵심 내용 요약', children: [], isExpanded: false, type: 'point' },
-          { id: 'outro-2', title: '시청자에게 질문 던지기', children: [], isExpanded: false, type: 'point' },
-          { id: 'outro-3', title: '구독/좋아요/알림 요청', children: [], isExpanded: false, type: 'point' },
-          { id: 'outro-4', title: '다음 영상 예고', children: [], isExpanded: false, type: 'point' }
+          { id: 'outro-1', title: '핵심 내용 요약', children: [], isExpanded: false, type: 'point', isGuide: true },
+          { id: 'outro-2', title: '시청자에게 질문 던지기', children: [], isExpanded: false, type: 'point', isGuide: true },
+          { id: 'outro-3', title: '구독/좋아요/알림 요청', children: [], isExpanded: false, type: 'point', isGuide: true },
+          { id: 'outro-4', title: '다음 영상 예고', children: [], isExpanded: false, type: 'point', isGuide: true }
         ]
       }
     ]
@@ -258,20 +258,28 @@ export const ScriptFlowMap: React.FC<ScriptFlowMapProps> = ({ onStructureChange 
           ) : (
             <>
               <span className="flex-1 font-medium">
-                {node.title}
+                {node.isGuide ? (
+                  <span className="text-slate-400 select-none cursor-not-allowed">
+                    {node.title}
+                  </span>
+                ) : (
+                  node.title
+                )}
                 {node.guideSuffix && (
                   <span className="text-slate-500 font-normal ml-1 select-none">{node.guideSuffix}</span>
                 )}
               </span>
               <div className="flex items-center gap-1">
-                <button
-                  onClick={() => startEdit(node.id, node.title)}
-                  className="p-1 hover:bg-white/10 rounded transition-colors opacity-0 group-hover:opacity-100"
-                  title="수정"
-                >
-                  <Edit2 size={16} />
-                </button>
-                {node.id !== 'root' && (
+                {!node.isGuide && (
+                  <button
+                    onClick={() => startEdit(node.id, node.title)}
+                    className="p-1 hover:bg-white/10 rounded transition-colors opacity-0 group-hover:opacity-100"
+                    title="수정"
+                  >
+                    <Edit2 size={16} />
+                  </button>
+                )}
+                {node.id !== 'root' && !node.isGuide && (
                   <button
                     onClick={() => handleDelete(node.id)}
                     className="p-1 hover:bg-red-600 rounded transition-colors opacity-0 group-hover:opacity-100"
@@ -337,8 +345,8 @@ export const ScriptFlowMap: React.FC<ScriptFlowMapProps> = ({ onStructureChange 
           💡 <strong>30초 룰</strong>: 처음 30초 안에 시청자를 사로잡아야 합니다.
         </p>
         <p className="text-slate-500 text-xs">
-          각 항목을 클릭하여 수정하세요. Delete/Backspace 키로 텍스트를 지울 수 있습니다.
-          회색으로 표시된 가이드 텍스트는 자동으로 유지됩니다.
+          회색으로 표시된 가이드 항목은 편집할 수 없습니다. 
+          + 버튼으로 새 항목을 추가하고, 추가한 항목은 자유롭게 편집/삭제할 수 있습니다.
         </p>
       </div>
 

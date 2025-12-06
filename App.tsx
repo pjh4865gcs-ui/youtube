@@ -198,7 +198,7 @@ const App: React.FC = () => {
         <label className="block text-lg font-semibold text-slate-200 mb-4">
           카테고리 선택 <span className="text-slate-500 text-sm font-normal">(드래그하여 손쉽 변경)</span>
         </label>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 mb-4">
           {['쓸 재널', '건강', '미스테리', '야담', '49금', '국룡', '북한 이슈', '정보 전달', '쇼핑 리뷰', 'IT/테크', '요리/국방', '뷰티', '게임', '먹방', '브이로그'].map((cat) => (
             <button
               key={cat}
@@ -212,6 +212,22 @@ const App: React.FC = () => {
               {cat}
             </button>
           ))}
+        </div>
+        <div className="pt-3 border-t border-slate-800">
+          <a 
+            href="https://trends.google.co.kr/trends" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="inline-flex items-center text-indigo-400 hover:text-indigo-300 transition-colors text-sm"
+          >
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+            </svg>
+            <span>Google Trends에서 트렌드 확인하기</span>
+            <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+          </a>
         </div>
       </div>
 
