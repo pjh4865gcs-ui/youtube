@@ -110,17 +110,55 @@ const App: React.FC = () => {
     
     const nodeToText = (node: any, level: number = 0): string => {
       let text = '';
+      
       // root 노드는 건너뛰기
-      if (node.id !== 'root') {
-        text = `${'#'.repeat(Math.min(level, 3))} ${node.title}\n\n`;
+      if (node.id === 'root') {
+        if (node.children && node.children.length > 0) {
+          text += node.children.map((child: any) => nodeToText(child, level)).join('\n');
+        }
+        return text;
       }
-      if (node.children && node.children.length > 0) {
-        text += node.children.map((child: any) => nodeToText(child, level + 1)).join('');
+      
+      // 섹션 헤더 (HOOK, INTRO, BODY, OUTRO)
+      if (node.type === 'hook' || node.type === 'intro' || node.type === 'body' || node.type === 'outro') {
+        text += `\n${'='.repeat(60)}\n`;
+        text += `**${node.title}**\n`;
+        text += `${'='.repeat(60)}\n\n`;
+        
+        if (node.children && node.children.length > 0) {
+          text += node.children.map((child: any) => nodeToText(child, level + 1)).join('\n');
+        }
       }
+      // 핵심 포인트
+      else if (node.type === 'point') {
+        text += `\n### ${node.title}\n\n`;
+        
+        if (node.children && node.children.length > 0) {
+          text += node.children.map((child: any) => nodeToText(child, level + 1)).join('\n');
+        }
+      }
+      // 세부 내용
+      else if (node.type === 'detail') {
+        text += `- ${node.title}\n`;
+        
+        if (node.children && node.children.length > 0) {
+          text += node.children.map((child: any) => nodeToText(child, level + 1)).join('\n');
+        }
+      }
+      // 기타
+      else {
+        text += `${'  '.repeat(level)}- ${node.title}\n`;
+        
+        if (node.children && node.children.length > 0) {
+          text += node.children.map((child: any) => nodeToText(child, level + 1)).join('\n');
+        }
+      }
+      
       return text;
     };
     
-    return nodeToText(scriptStructure);
+    const script = nodeToText(scriptStructure);
+    return script || '논리 흐름도에 내용을 입력해주세요.';
   };
 
   // Render Helpers
