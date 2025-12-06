@@ -69,6 +69,17 @@ const App: React.FC = () => {
     setGeneratedScript('');
   };
 
+  const handleBackToInput = () => {
+    setStep(AppStep.INPUT);
+    // 입력 내용은 유지
+  };
+
+  const handleBackToSelection = () => {
+    setStep(AppStep.SELECTION);
+    setSelectedTopic(null);
+    setGeneratedScript('');
+  };
+
   // Render Helpers
   const renderInput = () => (
     <div className="w-full max-w-3xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -103,7 +114,17 @@ const App: React.FC = () => {
   const renderSelection = () => (
     <div className="w-full max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
       {analysis && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="space-y-6">
+          {/* Back Button */}
+          <button
+            onClick={handleBackToInput}
+            className="flex items-center space-x-2 text-slate-400 hover:text-white transition-colors"
+          >
+            <ArrowRight className="rotate-180" size={20} />
+            <span>입력으로 돌아가기</span>
+          </button>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Analysis Panel */}
           <div className="lg:col-span-1 space-y-6">
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 h-full">
@@ -160,12 +181,22 @@ const App: React.FC = () => {
              </div>
           </div>
         </div>
+        </div>
       )}
     </div>
   );
 
   const renderResult = () => (
     <div className="w-full max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
+      {/* Back Button */}
+      <button
+        onClick={handleBackToSelection}
+        className="flex items-center space-x-2 text-slate-400 hover:text-white transition-colors mb-6"
+      >
+        <ArrowRight className="rotate-180" size={20} />
+        <span>주제 선택으로 돌아가기</span>
+      </button>
+
       <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl">
         {/* Header */}
         <div className="bg-slate-950/50 border-b border-slate-800 p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
