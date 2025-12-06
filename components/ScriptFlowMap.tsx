@@ -238,16 +238,12 @@ export const ScriptFlowMap: React.FC<ScriptFlowMapProps> = ({ onStructureChange 
                 value={editText}
                 onChange={(e) => setEditText(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') saveEdit();
-                  if (e.key === 'Escape') cancelEdit();
-                  if (e.key === 'Delete' && e.ctrlKey) {
-                    // Ctrl+Delete로 전체 삭제
-                    setEditText('');
+                  if (e.key === 'Enter') {
+                    saveEdit();
+                  } else if (e.key === 'Escape') {
+                    cancelEdit();
                   }
-                  if (e.key === ' ' && e.ctrlKey) {
-                    // Ctrl+Space로 전체 삭제
-                    setEditText('');
-                  }
+                  // Delete와 Backspace는 기본 동작 허용 (텍스트 삭제)
                 }}
                 className="flex-1 bg-slate-950 text-slate-100 border border-slate-600 rounded px-3 py-1 outline-none focus:ring-2 focus:ring-indigo-500"
                 autoFocus
@@ -264,7 +260,7 @@ export const ScriptFlowMap: React.FC<ScriptFlowMapProps> = ({ onStructureChange 
               <span className="flex-1 font-medium">
                 {node.title}
                 {node.guideSuffix && (
-                  <span className="text-slate-500 font-normal ml-1">{node.guideSuffix}</span>
+                  <span className="text-slate-500 font-normal ml-1 select-none">{node.guideSuffix}</span>
                 )}
               </span>
               <div className="flex items-center gap-1">
@@ -341,8 +337,8 @@ export const ScriptFlowMap: React.FC<ScriptFlowMapProps> = ({ onStructureChange 
           💡 <strong>30초 룰</strong>: 처음 30초 안에 시청자를 사로잡아야 합니다.
         </p>
         <p className="text-slate-500 text-xs">
-          각 항목을 클릭하여 수정하고, + 버튼으로 하위 항목을 추가하세요. 
-          입력 중 <kbd className="px-1 py-0.5 bg-slate-800 rounded text-xs">Ctrl+Del</kbd> 또는 <kbd className="px-1 py-0.5 bg-slate-800 rounded text-xs">Ctrl+Space</kbd>로 텍스트를 지울 수 있습니다.
+          각 항목을 클릭하여 수정하세요. Delete/Backspace 키로 텍스트를 지울 수 있습니다.
+          회색으로 표시된 가이드 텍스트는 자동으로 유지됩니다.
         </p>
       </div>
 
