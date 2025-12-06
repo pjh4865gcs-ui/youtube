@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sparkles, PenTool, ArrowRight, RotateCcw, Copy, CheckCircle2, Youtube, Wand2 } from 'lucide-react';
+import { Sparkles, PenTool, ArrowRight, RotateCcw, Copy, CheckCircle2, Youtube, Wand2, FileText, FileDown } from 'lucide-react';
 import { analyzeScriptAndGetTopics, generateFullScript, setApiKey } from './services/geminiService';
 import { AppStep, ScriptAnalysis, TopicSuggestion, ScriptOptions } from './types';
 import { StepIndicator } from './components/StepIndicator';
@@ -7,6 +7,7 @@ import { LoadingSpinner } from './components/LoadingSpinner';
 import { ApiKeyManager } from './components/ApiKeyManager';
 import { ThumbnailGenerator } from './components/ThumbnailGenerator';
 import { ScriptFlowMap } from './components/ScriptFlowMap';
+import { downloadAsWord, downloadAsPDF } from './utils/documentExport';
 
 const App: React.FC = () => {
   const [step, setStep] = useState<AppStep>(AppStep.INPUT);
@@ -454,6 +455,22 @@ const App: React.FC = () => {
             >
               {isCopied ? <CheckCircle2 size={18} /> : <Copy size={18} />}
               <span>{isCopied ? '복사됨!' : '대본 복사'}</span>
+            </button>
+            <button
+              onClick={() => downloadAsWord(selectedTopic?.title || '대본', generatedScript)}
+              className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-colors border border-blue-700"
+              title="Word 문서로 다운로드"
+            >
+              <FileText size={18} />
+              <span>Word</span>
+            </button>
+            <button
+              onClick={() => downloadAsPDF(selectedTopic?.title || '대본', generatedScript)}
+              className="flex items-center space-x-2 px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg font-medium transition-colors border border-red-700"
+              title="PDF로 다운로드"
+            >
+              <FileDown size={18} />
+              <span>PDF</span>
             </button>
             <button
               onClick={handleReset}

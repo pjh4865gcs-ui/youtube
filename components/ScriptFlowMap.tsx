@@ -7,6 +7,8 @@ interface MindMapNode {
   children: MindMapNode[];
   isExpanded: boolean;
   type: 'hook' | 'intro' | 'body' | 'outro' | 'point' | 'detail';
+  isGuide?: boolean; // 가이드 노드 표시
+  guideSuffix?: string; // 가이드 텍스트 (워터마크)
 }
 
 interface ScriptFlowMapProps {
@@ -22,9 +24,11 @@ export const ScriptFlowMap: React.FC<ScriptFlowMapProps> = ({ onStructureChange 
     children: [
       {
         id: 'hook',
-        title: '🎯 HOOK (0-30초): 시청자 사로잡기',
+        title: '🎯 HOOK',
+        guideSuffix: '(0-30초): 시청자 사로잡기',
         isExpanded: true,
         type: 'hook',
+        isGuide: true,
         children: [
           { id: 'hook-1', title: '충격적인 사실이나 질문', children: [], isExpanded: false, type: 'point' },
           { id: 'hook-2', title: '시청자의 문제점 제시', children: [], isExpanded: false, type: 'point' },
@@ -33,9 +37,11 @@ export const ScriptFlowMap: React.FC<ScriptFlowMapProps> = ({ onStructureChange 
       },
       {
         id: 'intro',
-        title: '📢 INTRO (30초-1분): 주제 소개',
+        title: '📢 INTRO',
+        guideSuffix: '(30초-1분): 주제 소개',
         isExpanded: true,
         type: 'intro',
+        isGuide: true,
         children: [
           { id: 'intro-1', title: '자기소개 (간단히)', children: [], isExpanded: false, type: 'point' },
           { id: 'intro-2', title: '영상 주제 명확히 밝히기', children: [], isExpanded: false, type: 'point' },
@@ -44,9 +50,11 @@ export const ScriptFlowMap: React.FC<ScriptFlowMapProps> = ({ onStructureChange 
       },
       {
         id: 'body',
-        title: '📚 BODY: 본문 내용',
+        title: '📚 BODY',
+        guideSuffix: ': 본문 내용',
         isExpanded: true,
         type: 'body',
+        isGuide: true,
         children: [
           {
             id: 'point-1',
@@ -83,9 +91,11 @@ export const ScriptFlowMap: React.FC<ScriptFlowMapProps> = ({ onStructureChange 
       },
       {
         id: 'outro',
-        title: '🎬 OUTRO & CTA: 마무리',
+        title: '🎬 OUTRO & CTA',
+        guideSuffix: ': 마무리',
         isExpanded: true,
         type: 'outro',
+        isGuide: true,
         children: [
           { id: 'outro-1', title: '핵심 내용 요약', children: [], isExpanded: false, type: 'point' },
           { id: 'outro-2', title: '시청자에게 질문 던지기', children: [], isExpanded: false, type: 'point' },
@@ -141,6 +151,7 @@ export const ScriptFlowMap: React.FC<ScriptFlowMapProps> = ({ onStructureChange 
 
   const updateNodeTitle = (nodeId: string, newTitle: string, node: MindMapNode = rootNode): MindMapNode => {
     if (node.id === nodeId) {
+      // 가이드 노드는 guideSuffix를 보존
       return { ...node, title: newTitle };
     }
     return {
@@ -229,6 +240,14 @@ export const ScriptFlowMap: React.FC<ScriptFlowMapProps> = ({ onStructureChange 
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') saveEdit();
                   if (e.key === 'Escape') cancelEdit();
+                  if (e.key === 'Delete' && e.ctrlKey) {
+                    // Ctrl+Delete로 전체 삭제
+                    setEditText('');
+                  }
+                  if (e.key === ' ' && e.ctrlKey) {
+                    // Ctrl+Space로 전체 삭제
+                    setEditText('');
+                  }
                 }}
                 className="flex-1 bg-slate-950 text-slate-100 border border-slate-600 rounded px-3 py-1 outline-none focus:ring-2 focus:ring-indigo-500"
                 autoFocus
@@ -242,7 +261,12 @@ export const ScriptFlowMap: React.FC<ScriptFlowMapProps> = ({ onStructureChange 
             </div>
           ) : (
             <>
-              <span className="flex-1 font-medium">{node.title}</span>
+              <span className="flex-1 font-medium">
+                {node.title}
+                {node.guideSuffix && (
+                  <span className="text-slate-500 font-normal ml-1">{node.guideSuffix}</span>
+                )}
+              </span>
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => startEdit(node.id, node.title)}
@@ -318,7 +342,7 @@ export const ScriptFlowMap: React.FC<ScriptFlowMapProps> = ({ onStructureChange 
         </p>
         <p className="text-slate-500 text-xs">
           각 항목을 클릭하여 수정하고, + 버튼으로 하위 항목을 추가하세요. 
-          구조를 완성한 후 "구조 복사" 버튼으로 텍스트로 내보낼 수 있습니다.
+          입력 중 <kbd className="px-1 py-0.5 bg-slate-800 rounded text-xs">Ctrl+Del</kbd> 또는 <kbd className="px-1 py-0.5 bg-slate-800 rounded text-xs">Ctrl+Space</kbd>로 텍스트를 지울 수 있습니다.
         </p>
       </div>
 
