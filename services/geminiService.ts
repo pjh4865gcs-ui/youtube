@@ -1,15 +1,20 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { ScriptAnalysis } from "../types";
 
-const apiKey = process.env.API_KEY;
-
-if (!apiKey) {
-  console.error("API_KEY is not defined in the environment.");
-}
-
-const ai = new GoogleGenAI({ apiKey: apiKey || 'dummy-key-for-build' });
-
 const modelName = "gemini-2.5-flash";
+
+let currentApiKey: string | null = null;
+
+export const setApiKey = (apiKey: string) => {
+  currentApiKey = apiKey;
+};
+
+const getAI = () => {
+  if (!currentApiKey) {
+    throw new Error("API 키가 설정되지 않았습니다. API 키를 먼저 설정해주세요.");
+  }
+  return new GoogleGenAI({ apiKey: currentApiKey });
+};
 
 export const analyzeScriptAndGetTopics = async (inputScript: string): Promise<ScriptAnalysis> => {
   const prompt = `
@@ -26,6 +31,7 @@ export const analyzeScriptAndGetTopics = async (inputScript: string): Promise<Sc
   `;
 
   try {
+    const ai = getAI();
     const response = await ai.models.generateContent({
       model: modelName,
       contents: prompt,
@@ -84,6 +90,7 @@ export const generateFullScript = async (topic: string, tone: string, audience: 
   `;
 
   try {
+    const ai = getAI();
     const response = await ai.models.generateContent({
       model: modelName,
       contents: prompt,

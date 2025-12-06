@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Sparkles, PenTool, ArrowRight, RotateCcw, Copy, CheckCircle2, Youtube, Wand2 } from 'lucide-react';
-import { analyzeScriptAndGetTopics, generateFullScript } from './services/geminiService';
+import { analyzeScriptAndGetTopics, generateFullScript, setApiKey } from './services/geminiService';
 import { AppStep, ScriptAnalysis, TopicSuggestion } from './types';
 import { StepIndicator } from './components/StepIndicator';
 import { LoadingSpinner } from './components/LoadingSpinner';
+import { ApiKeyManager } from './components/ApiKeyManager';
 
 const App: React.FC = () => {
   const [step, setStep] = useState<AppStep>(AppStep.INPUT);
@@ -12,10 +13,21 @@ const App: React.FC = () => {
   const [selectedTopic, setSelectedTopic] = useState<TopicSuggestion | null>(null);
   const [generatedScript, setGeneratedScript] = useState<string>('');
   const [isCopied, setIsCopied] = useState(false);
+  const [hasApiKey, setHasApiKey] = useState(false);
+
+  // API Key Handler
+  const handleApiKeySet = (apiKey: string) => {
+    setApiKey(apiKey);
+    setHasApiKey(true);
+  };
 
   // Handlers
   const handleAnalyze = async () => {
     if (!inputScript.trim()) return;
+    if (!hasApiKey) {
+      alert("먼저 Gemini API 키를 설정해주세요.");
+      return;
+    }
     
     setStep(AppStep.ANALYZING);
     try {
@@ -210,9 +222,7 @@ const App: React.FC = () => {
               Tube<span className="text-indigo-500">Script</span> AI
             </h1>
           </div>
-          <a href="#" className="hidden sm:flex text-slate-400 hover:text-white transition-colors text-sm font-medium">
-            사용 가이드
-          </a>
+          <ApiKeyManager onApiKeySet={handleApiKeySet} />
         </div>
       </header>
 
