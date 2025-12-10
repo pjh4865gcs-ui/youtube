@@ -10,21 +10,6 @@ export interface TopicSuggestion {
   reasoning: string;
 }
 
-export interface ScriptOptions {
-  youtubeUrl?: string;
-  category?: string;
-  duration?: string;
-  style?: 'dialogue' | 'narration';
-  customIdeas?: string;
-}
-
-export interface ThumbnailData {
-  title: string;
-  subtitle?: string;
-  imagePrompt: string;
-  imageUrl?: string;
-}
-
 export enum AppStep {
   INPUT = 'INPUT',
   ANALYZING = 'ANALYZING',
@@ -36,4 +21,39 @@ export enum AppStep {
 export interface GeneratedScript {
   title: string;
   content: string;
+}
+
+// Hollywood 기법 관련 타입
+export interface HollywoodTechnique {
+  name: string;
+  description: string;
+  examples: string[];
+}
+
+export interface ScriptAnalysisResult {
+  originalIntent: string;
+  detectedEmotion: string;
+  targetAudience: string;
+  recommendedTechnique: HollywoodTechnique;
+  strengthScore: number;
+  improvementAreas: string[];
+}
+
+export interface NewTopicSuggestion {
+  title: string;
+  hook: string;
+  appliedTechnique: string;
+  viralPotential: number;
+  reasoning: string;
+}
+
+export interface HollywoodScriptResult {
+  technique: string;
+  structure: {
+    act1: string;
+    act2: string;
+    act3: string;
+  };
+  fullScript: string;
+  keyElements: string[];
 }

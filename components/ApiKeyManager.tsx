@@ -1,127 +1,116 @@
 import React, { useState, useEffect } from 'react';
-import { Key, Check, X, Eye, EyeOff } from 'lucide-react';
+import { Key, Eye, EyeOff, Save, X } from 'lucide-react';
+import { setApiKey } from '../services/geminiService';
+import { setHollywoodApiKey } from '../services/hollywoodArchitect';
 
-interface ApiKeyManagerProps {
-  onApiKeySet: (apiKey: string) => void;
-}
-
-const API_KEY_STORAGE_KEY = 'gemini_api_key';
-
-export const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ onApiKeySet }) => {
-  const [apiKey, setApiKey] = useState('');
-  const [isEditing, setIsEditing] = useState(false);
+const ApiKeyManager: React.FC = () => {
+  const [apiKey, setApiKeyState] = useState('');
   const [showKey, setShowKey] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [savedKey, setSavedKey] = useState<string | null>(null);
 
   useEffect(() => {
-    const stored = localStorage.getItem(API_KEY_STORAGE_KEY);
+    const stored = localStorage.getItem('gemini_api_key');
     if (stored) {
       setSavedKey(stored);
-      onApiKeySet(stored);
-    } else {
-      setIsEditing(true);
+      setApiKey(stored);
+      setHollywoodApiKey(stored);
     }
   }, []);
 
   const handleSave = () => {
-    if (apiKey.trim()) {
-      localStorage.setItem(API_KEY_STORAGE_KEY, apiKey.trim());
-      setSavedKey(apiKey.trim());
-      onApiKeySet(apiKey.trim());
+    if (!apiKey.trim()) {
+      alert('API 키를 입력해 주세요.');
+      return;
+    }
+
+    localStorage.setItem('gemini_api_key', apiKey);
+    setApiKey(apiKey);
+    setHollywoodApiKey(apiKey);
+    setSavedKey(apiKey);
+    setIsEditing(false);
+    alert('API 키가 저장되었습니다.');
+  };
+
+  const handleDelete = () => {
+    if (confirm('저장된 API 키를 삭제하시겠습니까?')) {
+      localStorage.removeItem('gemini_api_key');
+      setApiKeyState('');
+      setSavedKey(null);
       setIsEditing(false);
-      setApiKey('');
     }
   };
 
-  const handleRemove = () => {
-    localStorage.removeItem(API_KEY_STORAGE_KEY);
-    setSavedKey(null);
-    setApiKey('');
-    setIsEditing(true);
+  const maskKey = (key: string) => {
+    if (key.length <= 8) return key;
+    return key.slice(0, 4) + '•'.repeat(key.length - 8) + key.slice(-4);
   };
 
-  const handleCancel = () => {
-    setApiKey('');
-    if (savedKey) {
-      setIsEditing(false);
-    }
-  };
-
-  const maskApiKey = (key: string) => {
-    if (key.length <= 8) return '••••••••';
-    return `${key.substring(0, 4)}${'•'.repeat(key.length - 8)}${key.substring(key.length - 4)}`;
-  };
-
-  if (!isEditing && savedKey) {
+  if (savedKey && !isEditing) {
     return (
-      <div className="flex items-center justify-end space-x-2">
-        <div className="flex items-center space-x-2 bg-slate-900 border border-slate-800 rounded-lg px-4 py-2">
-          <Key size={16} className="text-green-500" />
-          <span className="text-slate-400 text-sm font-mono">
-            {showKey ? savedKey : maskApiKey(savedKey)}
-          </span>
-          <button
-            onClick={() => setShowKey(!showKey)}
-            className="text-slate-500 hover:text-slate-300 transition-colors"
-          >
-            {showKey ? <EyeOff size={16} /> : <Eye size={16} />}
-          </button>
-        </div>
+      <div className="flex items-center gap-3 bg-slate-800/50 px-4 py-2 rounded-lg border border-slate-700">
+        <Key className="w-4 h-4 text-green-400" />
+        <span className="text-sm text-slate-300 font-mono">
+          {showKey ? savedKey : maskKey(savedKey)}
+        </span>
         <button
-          onClick={() => setIsEditing(true)}
-          className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm transition-colors"
+          onClick={() => setShowKey(!showKey)}
+          className="text-slate-400 hover:text-white transition-colors"
         >
-          변경
+          {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
         </button>
         <button
-          onClick={handleRemove}
-          className="px-3 py-2 bg-red-900/20 hover:bg-red-900/30 text-red-400 rounded-lg text-sm transition-colors"
+          onClick={() => setIsEditing(true)}
+          className="text-sm text-indigo-400 hover:text-indigo-300 transition-colors"
         >
-          삭제
+          수정
+        </button>
+        <button
+          onClick={handleDelete}
+          className="text-slate-400 hover:text-red-400 transition-colors"
+        >
+          <X className="w-4 h-4" />
         </button>
       </div>
     );
   }
 
   return (
-    <div className="flex items-center justify-end space-x-2">
-      <div className="relative">
-        <Key size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-        <input
-          type={showKey ? "text" : "password"}
-          value={apiKey}
-          onChange={(e) => setApiKey(e.target.value)}
-          placeholder="Gemini API 키 입력"
-          className="w-80 bg-slate-900 border border-slate-800 rounded-lg pl-10 pr-10 py-2 text-slate-200 placeholder:text-slate-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm font-mono"
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') handleSave();
-            if (e.key === 'Escape') handleCancel();
-          }}
-        />
-        <button
-          onClick={() => setShowKey(!showKey)}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
-        >
-          {showKey ? <EyeOff size={16} /> : <Eye size={16} />}
-        </button>
-      </div>
+    <div className="flex items-center gap-3 bg-slate-800/50 px-4 py-2 rounded-lg border border-slate-700">
+      <Key className="w-4 h-4 text-slate-400" />
+      <input
+        type={showKey ? 'text' : 'password'}
+        value={apiKey}
+        onChange={(e) => setApiKeyState(e.target.value)}
+        placeholder="Gemini API 키 입력"
+        className="bg-transparent text-sm text-slate-300 outline-none flex-1 min-w-[200px] font-mono"
+      />
+      <button
+        onClick={() => setShowKey(!showKey)}
+        className="text-slate-400 hover:text-white transition-colors"
+      >
+        {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+      </button>
       <button
         onClick={handleSave}
-        disabled={!apiKey.trim()}
-        className="px-3 py-2 bg-green-600 hover:bg-green-500 disabled:bg-slate-800 disabled:text-slate-500 text-white rounded-lg text-sm transition-colors flex items-center space-x-1"
+        className="flex items-center gap-1 text-sm bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1 rounded transition-colors"
       >
-        <Check size={16} />
-        <span>저장</span>
+        <Save className="w-4 h-4" />
+        저장
       </button>
-      {savedKey && (
+      {isEditing && (
         <button
-          onClick={handleCancel}
-          className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm transition-colors flex items-center space-x-1"
+          onClick={() => {
+            setIsEditing(false);
+            setApiKeyState(savedKey || '');
+          }}
+          className="text-slate-400 hover:text-white transition-colors"
         >
-          <X size={16} />
-          <span>취소</span>
+          <X className="w-4 h-4" />
         </button>
       )}
     </div>
   );
 };
+
+export default ApiKeyManager;

@@ -1,56 +1,36 @@
 import React, { useState } from 'react';
-import { Sparkles, PenTool, ArrowRight, RotateCcw, Copy, CheckCircle2, Youtube, Wand2, FileText, FileDown } from 'lucide-react';
-import { analyzeScriptAndGetTopics, generateFullScript, setApiKey } from './services/geminiService';
-import { AppStep, ScriptAnalysis, TopicSuggestion, ScriptOptions } from './types';
+import { Sparkles, PenTool, ArrowRight, RotateCcw, Copy, CheckCircle2, Youtube, Wand2, Film } from 'lucide-react';
+import { analyzeScriptAndGetTopics, generateFullScript } from './services/geminiService';
+import { setHollywoodApiKey, analyzeOriginalScript, suggestNewTopics, generateHollywoodScript } from './services/hollywoodArchitect';
+import { AppStep, ScriptAnalysis, TopicSuggestion, ScriptAnalysisResult, NewTopicSuggestion, HollywoodScriptResult } from './types';
 import { StepIndicator } from './components/StepIndicator';
 import { LoadingSpinner } from './components/LoadingSpinner';
-import { ApiKeyManager } from './components/ApiKeyManager';
-import { ThumbnailGenerator } from './components/ThumbnailGenerator';
-import { ScriptFlowMap } from './components/ScriptFlowMap';
+import HollywoodAnalysis from './components/HollywoodAnalysis';
+import ApiKeyManager from './components/ApiKeyManager';
 
-// 동적 import로 변경
-let downloadAsWord: any = null;
-let downloadAsPDF: any = null;
-
-// 브라우저 환경에서만 로드
-if (typeof window !== 'undefined') {
-  import('./utils/documentExport').then(module => {
-    downloadAsWord = module.downloadAsWord;
-    downloadAsPDF = module.downloadAsPDF;
-  }).catch(() => {
-    console.log('Document export features not available');
-  });
-}
+type WorkflowMode = 'classic' | 'hollywood';
 
 const App: React.FC = () => {
+  const [mode, setMode] = useState<WorkflowMode | null>(null);
   const [step, setStep] = useState<AppStep>(AppStep.INPUT);
   const [inputScript, setInputScript] = useState('');
-  const [scriptOptions, setScriptOptions] = useState<ScriptOptions>({
-    category: '',
-    duration: '8분',
-    style: 'dialogue',
-    customIdeas: ''
-  });
+  
+  // Classic mode state
   const [analysis, setAnalysis] = useState<ScriptAnalysis | null>(null);
   const [selectedTopic, setSelectedTopic] = useState<TopicSuggestion | null>(null);
   const [generatedScript, setGeneratedScript] = useState<string>('');
+  
+  // Hollywood mode state
+  const [hollywoodAnalysis, setHollywoodAnalysis] = useState<ScriptAnalysisResult | null>(null);
+  const [hollywoodTopics, setHollywoodTopics] = useState<NewTopicSuggestion[]>([]);
+  const [selectedHollywoodTopic, setSelectedHollywoodTopic] = useState<NewTopicSuggestion | null>(null);
+  const [hollywoodScript, setHollywoodScript] = useState<HollywoodScriptResult | null>(null);
+  
   const [isCopied, setIsCopied] = useState(false);
-  const [hasApiKey, setHasApiKey] = useState(false);
-  const [scriptStructure, setScriptStructure] = useState<any>(null);
 
-  // API Key Handler
-  const handleApiKeySet = (apiKey: string) => {
-    setApiKey(apiKey);
-    setHasApiKey(true);
-  };
-
-  // Handlers
+  // Handlers for Classic Mode
   const handleAnalyze = async () => {
     if (!inputScript.trim()) return;
-    if (!hasApiKey) {
-      alert("먼저 Gemini API 키를 설정해주세요.");
-      return;
-    }
     
     setStep(AppStep.ANALYZING);
     try {
@@ -69,13 +49,7 @@ const App: React.FC = () => {
     setSelectedTopic(topic);
     setStep(AppStep.GENERATING);
     try {
-      const script = await generateFullScript(
-        topic.title, 
-        analysis.tone, 
-        analysis.targetAudience,
-        scriptOptions.duration || '8분',
-        scriptOptions.style || 'dialogue'
-      );
+      const script = await generateFullScript(topic.title, analysis.tone, analysis.targetAudience);
       setGeneratedScript(script);
       setStep(AppStep.RESULT);
     } catch (error) {
@@ -84,244 +58,168 @@ const App: React.FC = () => {
     }
   };
 
+  // Handlers for Hollywood Mode
+  const handleHollywoodAnalyze = async () => {
+    if (!inputScript.trim()) return;
+    
+    setStep(AppStep.ANALYZING);
+    try {
+      // Get API key from localStorage
+      const apiKey = localStorage.getItem('gemini_api_key');
+      if (!apiKey) {
+        alert("API 키를 먼저 설정해 주세요.");
+        setStep(AppStep.INPUT);
+        return;
+      }
+      
+      setHollywoodApiKey(apiKey);
+      const result = await analyzeOriginalScript(inputScript);
+      setHollywoodAnalysis(result);
+      
+      // Get topic suggestions
+      const topics = await suggestNewTopics(result, inputScript);
+      setHollywoodTopics(topics);
+      
+      setStep(AppStep.SELECTION);
+    } catch (error) {
+      console.error(error);
+      alert("헐리우드 분석에 실패했습니다. API 키를 확인해 주세요.");
+      setStep(AppStep.INPUT);
+    }
+  };
+
+  const handleHollywoodTopicSelect = async (topic: NewTopicSuggestion) => {
+    if (!hollywoodAnalysis) return;
+    
+    setSelectedHollywoodTopic(topic);
+    setStep(AppStep.GENERATING);
+    
+    try {
+      const result = await generateHollywoodScript(topic, hollywoodAnalysis);
+      setHollywoodScript(result);
+      setStep(AppStep.RESULT);
+    } catch (error) {
+      console.error(error);
+      alert("대본 생성에 실패했습니다.");
+      setStep(AppStep.SELECTION);
+    }
+  };
+
   const handleCopy = () => {
-    navigator.clipboard.writeText(generatedScript);
+    const textToCopy = mode === 'hollywood' 
+      ? (hollywoodScript?.fullScript || '')
+      : generatedScript;
+    navigator.clipboard.writeText(textToCopy);
     setIsCopied(true);
     setTimeout(() => setIsCopied(false), 2000);
   };
 
   const handleReset = () => {
+    setMode(null);
     setStep(AppStep.INPUT);
     setInputScript('');
-    setScriptOptions({
-      category: '',
-      duration: '8분',
-      style: 'dialogue',
-      customIdeas: ''
-    });
     setAnalysis(null);
     setSelectedTopic(null);
     setGeneratedScript('');
+    setHollywoodAnalysis(null);
+    setHollywoodTopics([]);
+    setSelectedHollywoodTopic(null);
+    setHollywoodScript(null);
   };
 
   const handleBackToInput = () => {
     setStep(AppStep.INPUT);
-    // 입력 내용은 유지
-  };
-
-  const handleBackToSelection = () => {
-    setStep(AppStep.SELECTION);
-    setSelectedTopic(null);
-    setGeneratedScript('');
-  };
-
-  const handleStructureChange = (structure: any) => {
-    setScriptStructure(structure);
-  };
-
-  const generateScriptFromStructure = () => {
-    if (!scriptStructure) return '';
-    
-    const nodeToText = (node: any, level: number = 0): string => {
-      let text = '';
-      
-      // root 노드는 건너뛰기
-      if (node.id === 'root') {
-        if (node.children && node.children.length > 0) {
-          text += node.children.map((child: any) => nodeToText(child, level)).join('\n');
-        }
-        return text;
-      }
-      
-      // 섹션 헤더 (HOOK, INTRO, BODY, OUTRO)
-      if (node.type === 'hook' || node.type === 'intro' || node.type === 'body' || node.type === 'outro') {
-        text += `\n${'='.repeat(60)}\n`;
-        text += `**${node.title}**\n`;
-        text += `${'='.repeat(60)}\n\n`;
-        
-        if (node.children && node.children.length > 0) {
-          text += node.children.map((child: any) => nodeToText(child, level + 1)).join('\n');
-        }
-      }
-      // 핵심 포인트
-      else if (node.type === 'point') {
-        text += `\n### ${node.title}\n\n`;
-        
-        if (node.children && node.children.length > 0) {
-          text += node.children.map((child: any) => nodeToText(child, level + 1)).join('\n');
-        }
-      }
-      // 세부 내용
-      else if (node.type === 'detail') {
-        text += `- ${node.title}\n`;
-        
-        if (node.children && node.children.length > 0) {
-          text += node.children.map((child: any) => nodeToText(child, level + 1)).join('\n');
-        }
-      }
-      // 기타
-      else {
-        text += `${'  '.repeat(level)}- ${node.title}\n`;
-        
-        if (node.children && node.children.length > 0) {
-          text += node.children.map((child: any) => nodeToText(child, level + 1)).join('\n');
-        }
-      }
-      
-      return text;
-    };
-    
-    const script = nodeToText(scriptStructure);
-    return script || '논리 흐름도에 내용을 입력해주세요.';
+    setInputScript('');
   };
 
   // Render Helpers
-  const renderInput = () => (
+  const renderModeSelection = () => (
     <div className="w-full max-w-4xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      {/* YouTube URL Input */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl">
-        <label htmlFor="youtube-url" className="block text-lg font-semibold text-slate-200 mb-4">
-          유튜브 URL 입력 (선택사항)
-        </label>
-        <input
-          id="youtube-url"
-          type="text"
-          className="w-full bg-slate-950 text-slate-100 border-2 border-slate-800 rounded-xl p-4 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-lg placeholder:text-slate-600 outline-none"
-          placeholder="https://www.youtube.com/watch?v=..."
-          value={scriptOptions.youtubeUrl || ''}
-          onChange={(e) => setScriptOptions({...scriptOptions, youtubeUrl: e.target.value})}
-        />
+      <div className="text-center mb-8">
+        <h2 className="text-3xl font-bold text-white mb-4">대본 생성 방식을 선택하세요</h2>
+        <p className="text-slate-400">두 가지 AI 워크플로우 중 선택하여 최적의 대본을 생성하세요</p>
       </div>
-
-      {/* Category Selection */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl">
-        <label className="block text-lg font-semibold text-slate-200 mb-4">
-          카테고리 선택 <span className="text-slate-500 text-sm font-normal">(드래그하여 손쉽 변경)</span>
-        </label>
-        <div className="flex flex-wrap gap-2 mb-4">
-          {['쓸 재널', '건강', '미스테리', '야담', '49금', '국룡', '북한 이슈', '정보 전달', '쇼핑 리뷰', 'IT/테크', '요리/국방', '뷰티', '게임', '먹방', '브이로그'].map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setScriptOptions({...scriptOptions, category: cat})}
-              className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                scriptOptions.category === cat
-                  ? 'bg-red-600 text-white'
-                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
-        <div className="pt-3 border-t border-slate-800">
-          <a 
-            href="https://trends.google.co.kr/trends" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="inline-flex items-center text-indigo-400 hover:text-indigo-300 transition-colors text-sm"
-          >
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-            </svg>
-            <span>Google Trends에서 트렌드 확인하기</span>
-            <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-            </svg>
-          </a>
-        </div>
-      </div>
-
-      {/* Duration and Style */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Duration */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl">
-          <label className="block text-lg font-semibold text-slate-200 mb-4">
-            예상 영상 길이
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {['8분', '30분', '1시간', '사용자 입력'].map((dur) => (
-              <button
-                key={dur}
-                onClick={() => setScriptOptions({...scriptOptions, duration: dur})}
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                  scriptOptions.duration === dur
-                    ? 'bg-red-600 text-white'
-                    : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                }`}
-              >
-                {dur}
-              </button>
-            ))}
+      
+      <div className="grid md:grid-cols-2 gap-6">
+        {/* Classic Mode */}
+        <button
+          onClick={() => setMode('classic')}
+          className="group relative bg-slate-900 hover:bg-slate-800 border-2 border-slate-800 hover:border-indigo-500 rounded-2xl p-8 text-left transition-all duration-200 transform hover:scale-105"
+        >
+          <div className="flex items-start justify-between mb-4">
+            <div className="p-3 bg-indigo-600/20 rounded-xl group-hover:bg-indigo-600/30 transition-colors">
+              <Wand2 className="w-8 h-8 text-indigo-400" />
+            </div>
+            <ArrowRight className="text-slate-700 group-hover:text-indigo-500 transition-colors" />
           </div>
-        </div>
-
-        {/* Style */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl">
-          <label className="block text-lg font-semibold text-slate-200 mb-4">
-            대본 스타일
-          </label>
-          <div className="space-y-3">
-            <button
-              onClick={() => setScriptOptions({...scriptOptions, style: 'dialogue'})}
-              className={`w-full p-4 rounded-xl text-left transition-all ${
-                scriptOptions.style === 'dialogue'
-                  ? 'bg-red-600 text-white border-2 border-red-500'
-                  : 'bg-slate-800 text-slate-300 border-2 border-slate-700 hover:bg-slate-700'
-              }`}
-            >
-              <div className="font-bold mb-1">🗣️ 대화 버전</div>
-              <div className="text-sm opacity-80">등장인물 간 대화 형식</div>
-            </button>
-            <button
-              onClick={() => setScriptOptions({...scriptOptions, style: 'narration'})}
-              className={`w-full p-4 rounded-xl text-left transition-all ${
-                scriptOptions.style === 'narration'
-                  ? 'bg-red-600 text-white border-2 border-red-500'
-                  : 'bg-slate-800 text-slate-300 border-2 border-slate-700 hover:bg-slate-700'
-              }`}
-            >
-              <div className="font-bold mb-1">📖 나레이션 버전</div>
-              <div className="text-sm opacity-80">단독 나레이터 형식</div>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* New Ideas Input */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl">
-        <label className="block text-lg font-semibold text-slate-200 mb-4">
-          새로운 아이디어 제안
-        </label>
-        <div className="mb-4">
-          <input
-            type="text"
-            className="w-full bg-slate-950 text-slate-100 border-2 border-slate-800 rounded-xl p-4 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-lg placeholder:text-slate-600 outline-none"
-            placeholder="원하는 키워드 입력 (선택사항) - 예: 다이어트, 여행, 게임"
-            value={scriptOptions.customIdeas}
-            onChange={(e) => setScriptOptions({...scriptOptions, customIdeas: e.target.value})}
-          />
-          <p className="text-slate-500 text-sm mt-2 flex items-start">
-            <span className="mr-2">💡</span>
-            특정 키워드를 입력하고 '적용' 버튼을 누르면 해당 키워드를 포함한 아이디어가 생성됩니다.
+          <h3 className="text-2xl font-bold text-white mb-3">클래식 모드</h3>
+          <p className="text-slate-400 mb-4">
+            빠르고 직관적인 AI 분석으로 아이디어를 즉시 대본으로 변환합니다.
           </p>
+          <ul className="space-y-2 text-sm text-slate-500">
+            <li className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-green-500" />
+              <span>빠른 톤 & 타겟 분석</span>
+            </li>
+            <li className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-green-500" />
+              <span>다양한 주제 제안</span>
+            </li>
+            <li className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-green-500" />
+              <span>즉시 대본 생성</span>
+            </li>
+          </ul>
+        </button>
+
+        {/* Hollywood Mode */}
+        <button
+          onClick={() => setMode('hollywood')}
+          className="group relative bg-slate-900 hover:bg-slate-800 border-2 border-slate-800 hover:border-pink-500 rounded-2xl p-8 text-left transition-all duration-200 transform hover:scale-105"
+        >
+          <div className="flex items-start justify-between mb-4">
+            <div className="p-3 bg-pink-600/20 rounded-xl group-hover:bg-pink-600/30 transition-colors">
+              <Film className="w-8 h-8 text-pink-400" />
+            </div>
+            <ArrowRight className="text-slate-700 group-hover:text-pink-500 transition-colors" />
+          </div>
+          <h3 className="text-2xl font-bold text-white mb-3">헐리우드 기법 모드</h3>
+          <p className="text-slate-400 mb-4">
+            영화 스토리텔링 기법을 적용하여 강력한 바이럴 대본을 설계합니다.
+          </p>
+          <ul className="space-y-2 text-sm text-slate-500">
+            <li className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-pink-500" />
+              <span>7가지 헐리우드 기법 진단</span>
+            </li>
+            <li className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-pink-500" />
+              <span>바이럴 최적화 주제 제안</span>
+            </li>
+            <li className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-pink-500" />
+              <span>삼막 구조 대본 작성</span>
+            </li>
+          </ul>
+        </button>
+      </div>
+    </div>
+  );
+
+  const renderInput = () => (
+    <div className="w-full max-w-3xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl">
+        <div className="flex items-center justify-between mb-4">
+          <label htmlFor="script-input" className="block text-lg font-semibold text-slate-200">
+            대본 초안이나 영상 아이디어를 입력하세요
+          </label>
+          <button
+            onClick={() => setMode(null)}
+            className="text-sm text-slate-500 hover:text-slate-300 transition-colors"
+          >
+            ← 모드 변경
+          </button>
         </div>
-      </div>
-
-      {/* Thumbnail Title Input (Optional) */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl">
-        <label className="block text-lg font-semibold text-slate-200 mb-4">
-          썸네일 제목 직접 입력 또는 아이디어 선택
-        </label>
-        <p className="text-slate-400 text-sm mb-4">
-          영상 분석을 불러올게 있습니다.
-        </p>
-      </div>
-
-      {/* Main Script Input */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl">
-        <label htmlFor="script-input" className="block text-lg font-semibold text-slate-200 mb-4">
-          대본 초안이나 영상 아이디어를 입력하세요
-        </label>
         <textarea
           id="script-input"
           className="w-full h-64 bg-slate-950 text-slate-100 border-2 border-slate-800 rounded-xl p-4 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all resize-none text-lg leading-relaxed placeholder:text-slate-600 outline-none"
@@ -334,12 +232,16 @@ const App: React.FC = () => {
             {inputScript.length} 자
           </span>
           <button
-            onClick={handleAnalyze}
+            onClick={mode === 'hollywood' ? handleHollywoodAnalyze : handleAnalyze}
             disabled={!inputScript.trim()}
-            className="flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed text-white px-8 py-3 rounded-xl font-bold transition-all transform active:scale-95 shadow-lg shadow-indigo-900/20"
+            className={`flex items-center space-x-2 ${
+              mode === 'hollywood' 
+                ? 'bg-pink-600 hover:bg-pink-500' 
+                : 'bg-indigo-600 hover:bg-indigo-500'
+            } disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed text-white px-8 py-3 rounded-xl font-bold transition-all transform active:scale-95 shadow-lg`}
           >
-            <Sparkles size={20} />
-            <span>분석 및 아이디어 생성</span>
+            {mode === 'hollywood' ? <Film size={20} /> : <Sparkles size={20} />}
+            <span>{mode === 'hollywood' ? '헐리우드 분석 시작' : '분석 및 아이디어 생성'}</span>
           </button>
         </div>
       </div>
@@ -349,46 +251,7 @@ const App: React.FC = () => {
   const renderSelection = () => (
     <div className="w-full max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
       {analysis && (
-        <div className="space-y-6">
-          {/* Back Button */}
-          <button
-            onClick={handleBackToInput}
-            className="flex items-center space-x-2 text-slate-400 hover:text-white transition-colors"
-          >
-            <ArrowRight className="rotate-180" size={20} />
-            <span>입력으로 돌아가기</span>
-          </button>
-
-          {/* Script Flow Map */}
-          <ScriptFlowMap onStructureChange={handleStructureChange} />
-
-          {/* Generate Script from Structure Button */}
-          {scriptStructure && (
-            <div className="bg-gradient-to-r from-indigo-900/50 to-purple-900/50 border-2 border-indigo-500/50 rounded-2xl p-6 shadow-2xl">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-xl font-bold text-white mb-2">📝 구조 기반 대본 생성</h3>
-                  <p className="text-slate-300 text-sm">
-                    위에서 작성한 논리 흐름도를 하나의 완성된 대본으로 통합합니다.
-                  </p>
-                </div>
-                <button
-                  onClick={() => {
-                    const structuredScript = generateScriptFromStructure();
-                    setGeneratedScript(structuredScript);
-                    setSelectedTopic({ title: '구조 기반 대본', reasoning: '논리 흐름도에서 생성됨' });
-                    setStep(AppStep.RESULT);
-                  }}
-                  className="flex items-center space-x-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white px-6 py-3 rounded-xl font-bold transition-all transform hover:scale-105 shadow-lg"
-                >
-                  <Sparkles size={20} />
-                  <span>대본 생성하기</span>
-                </button>
-              </div>
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Analysis Panel */}
           <div className="lg:col-span-1 space-y-6">
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 h-full">
@@ -445,97 +308,119 @@ const App: React.FC = () => {
              </div>
           </div>
         </div>
-        </div>
       )}
     </div>
   );
 
-  const renderResult = () => (
-    <div className="w-full max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
-      {/* Back Button */}
-      <button
-        onClick={handleBackToSelection}
-        className="flex items-center space-x-2 text-slate-400 hover:text-white transition-colors"
-      >
-        <ArrowRight className="rotate-180" size={20} />
-        <span>주제 선택으로 돌아가기</span>
-      </button>
+  const renderResult = () => {
+    if (mode === 'hollywood' && hollywoodScript) {
+      return (
+        <div className="w-full max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-pink-900/30 to-purple-900/30 border-b border-slate-800 p-6">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Film className="w-6 h-6 text-pink-400" />
+                    <span className="text-pink-400 font-semibold text-sm">헐리우드 기법 적용</span>
+                  </div>
+                  <h2 className="text-2xl font-bold text-white mb-1">생성된 대본</h2>
+                  <p className="text-pink-300 font-medium">{selectedHollywoodTopic?.title}</p>
+                </div>
+                <div className="flex space-x-3">
+                  <button
+                    onClick={handleCopy}
+                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                      isCopied 
+                        ? 'bg-green-600/20 text-green-400 border border-green-600/50' 
+                        : 'bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white border border-slate-700'
+                    }`}
+                  >
+                    {isCopied ? <CheckCircle2 size={18} /> : <Copy size={18} />}
+                    <span>{isCopied ? '복사됨!' : '대본 복사'}</span>
+                  </button>
+                  <button
+                    onClick={handleReset}
+                    className="flex items-center space-x-2 px-4 py-2 bg-pink-600 hover:bg-pink-500 text-white rounded-lg font-medium transition-colors"
+                  >
+                    <RotateCcw size={18} />
+                    <span>새 프로젝트</span>
+                  </button>
+                </div>
+              </div>
 
-      {/* Thumbnail Generator */}
-      {analysis && selectedTopic && (
-        <ThumbnailGenerator topic={selectedTopic.title} tone={analysis.tone} />
-      )}
-
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl">
-        {/* Header */}
-        <div className="bg-slate-950/50 border-b border-slate-800 p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h2 className="text-2xl font-bold text-white mb-1">생성된 대본</h2>
-            <p className="text-indigo-400 font-medium">{selectedTopic?.title}</p>
-          </div>
-          <div className="flex space-x-3">
-            <button
-              onClick={handleCopy}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors ${
-                isCopied 
-                  ? 'bg-green-600/20 text-green-400 border border-green-600/50' 
-                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white border border-slate-700'
-              }`}
-            >
-              {isCopied ? <CheckCircle2 size={18} /> : <Copy size={18} />}
-              <span>{isCopied ? '복사됨!' : '대본 복사'}</span>
-            </button>
-            <button
-              onClick={() => {
-                if (downloadAsWord) {
-                  downloadAsWord(selectedTopic?.title || '대본', generatedScript);
-                } else {
-                  alert('Word 다운로드 기능을 로딩 중입니다. 잠시 후 다시 시도해주세요.');
-                }
-              }}
-              className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-colors border border-blue-700"
-              title="Word 문서로 다운로드"
-            >
-              <FileText size={18} />
-              <span>Word</span>
-            </button>
-            <button
-              onClick={() => {
-                if (downloadAsPDF) {
-                  downloadAsPDF(selectedTopic?.title || '대본', generatedScript);
-                } else {
-                  alert('PDF 다운로드 기능을 로딩 중입니다. 잠시 후 다시 시도해주세요.');
-                }
-              }}
-              className="flex items-center space-x-2 px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg font-medium transition-colors border border-red-700"
-              title="PDF로 다운로드"
-            >
-              <FileDown size={18} />
-              <span>PDF</span>
-            </button>
-            <button
-              onClick={handleReset}
-              className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium transition-colors"
-            >
-              <RotateCcw size={18} />
-              <span>새 프로젝트</span>
-            </button>
+              {/* Key Elements */}
+              <div className="mt-4 flex flex-wrap gap-2">
+                {hollywoodScript.keyElements.map((element, idx) => (
+                  <span key={idx} className="px-3 py-1 bg-pink-900/40 text-pink-200 rounded-full text-sm border border-pink-700/50">
+                    {element}
+                  </span>
+                ))}
+              </div>
+            </div>
+            
+            {/* Content */}
+            <div className="p-8 bg-slate-900">
+              <div className="prose prose-invert prose-lg max-w-none prose-headings:text-pink-300 prose-p:text-slate-300 prose-strong:text-white">
+                <div className="whitespace-pre-wrap leading-relaxed font-light">
+                  {hollywoodScript.fullScript.split('**').map((part, index) => 
+                    index % 2 === 1 ? <strong key={index} className="text-white font-bold">{part}</strong> : part
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-        
-        {/* Content */}
-        <div className="p-8 bg-slate-900">
-          <div className="prose prose-invert prose-lg max-w-none prose-headings:text-indigo-300 prose-p:text-slate-300 prose-strong:text-white">
-            <div className="whitespace-pre-wrap leading-relaxed font-light">
-              {generatedScript.split('**').map((part, index) => 
-                index % 2 === 1 ? <strong key={index} className="text-white font-bold">{part}</strong> : part
-              )}
+      );
+    }
+
+    // Classic mode result
+    return (
+      <div className="w-full max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl">
+          {/* Header */}
+          <div className="bg-slate-950/50 border-b border-slate-800 p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h2 className="text-2xl font-bold text-white mb-1">생성된 대본</h2>
+              <p className="text-indigo-400 font-medium">{selectedTopic?.title}</p>
+            </div>
+            <div className="flex space-x-3">
+              <button
+                onClick={handleCopy}
+                className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                  isCopied 
+                    ? 'bg-green-600/20 text-green-400 border border-green-600/50' 
+                    : 'bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white border border-slate-700'
+                }`}
+              >
+                {isCopied ? <CheckCircle2 size={18} /> : <Copy size={18} />}
+                <span>{isCopied ? '복사됨!' : '대본 복사'}</span>
+              </button>
+              <button
+                onClick={handleReset}
+                className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium transition-colors"
+              >
+                <RotateCcw size={18} />
+                <span>새 프로젝트</span>
+              </button>
+            </div>
+          </div>
+          
+          {/* Content */}
+          <div className="p-8 bg-slate-900">
+            <div className="prose prose-invert prose-lg max-w-none prose-headings:text-indigo-300 prose-p:text-slate-300 prose-strong:text-white">
+              <div className="whitespace-pre-wrap leading-relaxed font-light">
+                {generatedScript.split('**').map((part, index) => 
+                  index % 2 === 1 ? <strong key={index} className="text-white font-bold">{part}</strong> : part
+                )}
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50 flex flex-col font-sans">
@@ -550,15 +435,20 @@ const App: React.FC = () => {
               Tube<span className="text-indigo-500">Script</span> AI
             </h1>
           </div>
-          <ApiKeyManager onApiKeySet={handleApiKeySet} />
+          <div className="flex items-center gap-4">
+            <ApiKeyManager />
+            <a href="#" className="hidden sm:flex text-slate-400 hover:text-white transition-colors text-sm font-medium">
+              사용 가이드
+            </a>
+          </div>
         </div>
       </header>
 
       {/* Main Content */}
       <main className="flex-grow p-6 md:p-12">
         <div className="max-w-7xl mx-auto">
-          {/* Header Text (only on input) */}
-          {step === AppStep.INPUT && (
+          {/* Header Text (only on mode selection) */}
+          {mode === null && (
             <div className="text-center mb-12 animate-in fade-in slide-in-from-bottom-2">
               <h2 className="text-4xl md:text-5xl font-extrabold text-white mb-6 leading-tight">
                 아이디어를 <br />
@@ -574,13 +464,34 @@ const App: React.FC = () => {
           )}
 
           {/* Progress Indicator */}
-          {step !== AppStep.INPUT && <StepIndicator currentStep={step} />}
+          {step !== AppStep.INPUT && mode !== null && <StepIndicator currentStep={step} />}
 
           {/* Conditional Rendering */}
-          {step === AppStep.INPUT && renderInput()}
-          {step === AppStep.ANALYZING && <LoadingSpinner message="글쓰기 스타일을 분석하고 아이디어를 브레인스토밍 중입니다..." />}
-          {step === AppStep.SELECTION && renderSelection()}
-          {step === AppStep.GENERATING && <LoadingSpinner message={`"${selectedTopic?.title}" 대본을 작성 중입니다...`} />}
+          {mode === null && renderModeSelection()}
+          {mode !== null && step === AppStep.INPUT && renderInput()}
+          {step === AppStep.ANALYZING && (
+            <LoadingSpinner message={
+              mode === 'hollywood' 
+                ? "헐리우드 영화 기법을 분석하고 새로운 주제를 제안하는 중입니다..." 
+                : "글쓰기 스타일을 분석하고 아이디어를 브레인스토밍 중입니다..."
+            } />
+          )}
+          {step === AppStep.SELECTION && mode === 'classic' && renderSelection()}
+          {step === AppStep.SELECTION && mode === 'hollywood' && hollywoodAnalysis && (
+            <HollywoodAnalysis
+              analysisResult={hollywoodAnalysis}
+              topicSuggestions={hollywoodTopics}
+              onSelectTopic={handleHollywoodTopicSelect}
+              onBack={handleBackToInput}
+            />
+          )}
+          {step === AppStep.GENERATING && (
+            <LoadingSpinner message={
+              mode === 'hollywood'
+                ? `"${selectedHollywoodTopic?.title}" 헐리우드 기법으로 대본을 작성 중입니다...`
+                : `"${selectedTopic?.title}" 대본을 작성 중입니다...`
+            } />
+          )}
           {step === AppStep.RESULT && renderResult()}
         </div>
       </main>

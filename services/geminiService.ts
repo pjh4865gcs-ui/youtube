@@ -1,18 +1,25 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { ScriptAnalysis, ThumbnailData } from "../types";
+import { ScriptAnalysis } from "../types";
 
 const modelName = "gemini-2.5-flash";
-const imageModelName = "gemini-2.5-flash"; // 이미지 생성 모델
 
 let currentApiKey: string | null = null;
 
+// Set API key dynamically
 export const setApiKey = (apiKey: string) => {
   currentApiKey = apiKey;
 };
 
+// Get AI instance with current key
 const getAI = () => {
   if (!currentApiKey) {
-    throw new Error("API 키가 설정되지 않았습니다. API 키를 먼저 설정해주세요.");
+    // Try to get from localStorage
+    const storedKey = localStorage.getItem('gemini_api_key');
+    if (storedKey) {
+      currentApiKey = storedKey;
+    } else {
+      throw new Error("API 키가 설정되지 않았습니다.");
+    }
   }
   return new GoogleGenAI({ apiKey: currentApiKey });
 };
@@ -74,24 +81,12 @@ export const analyzeScriptAndGetTopics = async (inputScript: string): Promise<Sc
   }
 };
 
-export const generateFullScript = async (
-  topic: string, 
-  tone: string, 
-  audience: string,
-  duration: string = '8분',
-  style: 'dialogue' | 'narration' = 'dialogue'
-): Promise<string> => {
-  const styleInstruction = style === 'dialogue' 
-    ? '대화 형식으로 작성하세요. 등장인물 간의 자연스러운 대화로 구성하세요.'
-    : '나레이션 형식으로 작성하세요. 단독 나레이터가 진행하는 형식으로 구성하세요.';
-
+export const generateFullScript = async (topic: string, tone: string, audience: string): Promise<string> => {
   const prompt = `
     비디오 제목: "${topic}"에 대한 시청 지속 시간이 높은 완벽한 유튜브 대본을 작성하세요.
     
     타겟 시청자: ${audience}
     원하는 톤: ${tone}
-    예상 영상 길이: ${duration}
-    대본 스타일: ${styleInstruction}
     
     구조 요구사항:
     1. 후킹 (HOOK) (0-60초): 즉시 관심을 사로잡으세요.
@@ -115,86 +110,3 @@ export const generateFullScript = async (
     throw error;
   }
 };
-
-export const generateThumbnail = async (topic: string, tone: string): Promise<ThumbnailData> => {
-  const prompt = `
-    유튜브 비디오 제목 "${topic}"에 대한 매력적인 썸네일을 디자인하세요.
-    
-    톤: ${tone}
-    
-    다음 정보를 생성하세요:
-    1. 썸네일에 들어갈 메인 텍스트 (짧고 임팩트 있게, 10자 이내)
-    2. 서브 텍스트 (선택사항, 있다면 5-8자)
-    3. 썸네일 배경 이미지 생성을 위한 상세한 프롬프트 (영어로, 유튜브 썸네일 스타일)
-    
-    모든 응답은 한국어로 작성하되, imagePrompt만 영어로 작성하세요.
-  `;
-
-  try {
-    const ai = getAI();
-    const response = await ai.models.generateContent({
-      model: modelName,
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            title: { type: Type.STRING, description: "썸네일 메인 텍스트 (한국어)" },
-            subtitle: { type: Type.STRING, description: "썸네일 서브 텍스트 (한국어, 선택사항)" },
-            imagePrompt: { type: Type.STRING, description: "이미지 생성 프롬프트 (영어)" }
-          },
-          required: ["title", "imagePrompt"]
-        }
-      }
-    });
-
-    const text = response.text;
-    if (!text) throw new Error("No response from Gemini");
-    
-    return JSON.parse(text) as ThumbnailData;
-  } catch (error) {
-    console.error("Thumbnail generation failed:", error);
-    throw error;
-  }
-};
-
-export const generateScriptStructure = async (topic: string, tone: string, audience: string): Promise<string> => {
-  const prompt = `
-    유튜브 비디오 제목 "${topic}"에 대한 상세한 대본 구조를 생성하세요.
-    
-    타겟 시청자: ${audience}
-    톤: ${tone}
-    
-    30초 룰을 적용하여 다음 구조로 작성하세요:
-    
-    1. HOOK (0-30초): 시청자를 즉시 사로잡을 3가지 요소
-       - 각 요소는 구체적이고 실행 가능해야 함
-    
-    2. INTRO (30초-1분): 주제 소개 및 구성 안내
-       - 자기소개, 주제 명확화, 타임스탬프 미리보기
-    
-    3. BODY: 핵심 내용 (3-5개 포인트)
-       - 각 포인트마다 2-3개의 세부 설명
-       - 예시, 사례, 시각 자료 활용 방안 포함
-    
-    4. OUTRO & CTA: 마무리
-       - 요약, 질문, 행동 유도, 다음 영상 예고
-    
-    계층 구조로 명확하게 정리하여 출력하세요. 모든 내용은 한국어로 작성하세요.
-  `;
-
-  try {
-    const ai = getAI();
-    const response = await ai.models.generateContent({
-      model: modelName,
-      contents: prompt,
-    });
-
-    return response.text || "구조 생성에 실패했습니다.";
-  } catch (error) {
-    console.error("Structure generation failed:", error);
-    throw error;
-  }
-};
-
